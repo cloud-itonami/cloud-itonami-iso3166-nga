@@ -1,0 +1,23 @@
+;; data/datascript-tx.edn — DataScript tx-data derived from src/statute/facts.cljc
+;; `statute.facts/catalog` (ADR-2607141700 Wave 0). Same shape as sibling files.
+
+[#:statute{:id "nga.cama-2020-companies-and-allied-matters-act"
+           :title "Companies and Allied Matters Act, 2020"
+           :jurisdiction "NGA"
+           :kind :law
+           :law-number "CAMA 2020"
+           :url "https://en.wikipedia.org/wiki/Companies_and_Allied_Matters_Act,_2020"
+           :url-provenance :wikipedia-corroborated
+           :enacted-date "2020-08-07"
+           :retrieved-at "2026-07-17"
+           :topic [:corporate-governance :incorporation]}
+ #:statute{:id "nga.ndpa-2023-nigeria-data-protection-act"
+           :title "Nigeria Data Protection Act, 2023"
+           :jurisdiction "NGA"
+           :kind :law
+           :law-number "NDPA 2023"
+           :url "https://ndpc.gov.ng/about-us/"
+           :url-provenance :official-ndpc-gov-ng
+           :enacted-date "2023-06-12"
+           :retrieved-at "2026-07-17"
+           :topic [:data-protection :privacy]}]
