@@ -22,7 +22,78 @@
     (is (nil? (facts/required-evidence-satisfied? "ATL" all)))))
 
 (deftest coverage-is-honest
-  (let [c (facts/coverage ["NGA" "USA" "ATL"])]
-    (is (= 3 (:requested c)))
-    (is (= 2 (:covered c)))
-    (is (= ["ATL"] (:missing-jurisdictions c)))))
+  (testing "only NGA is covered -- prior unlabeled USA/KEN/GHA scaffold-contamination entries are gone"
+    (let [c (facts/coverage ["NGA" "ATL"])]
+      (is (= 2 (:requested c)))
+      (is (= 1 (:covered c)))
+      (is (= ["NGA"] (:covered-jurisdictions c)))
+      (is (= ["ATL"] (:missing-jurisdictions c))))))
+
+;; -------- fact-audit regression: PPA 2007 / BPP structure --------
+
+(deftest ppa-2007-procurement-law-compliance
+  (testing "the governing procurement statute is PPA 2007, citing BPP as regulator"
+    (let [sb (facts/spec-basis "NGA")]
+      (is (re-find #"Public Procurement Act 2007" (:legal-basis sb)))
+      (is (re-find #"Bureau of Public Procurement" (:owner-authority sb)))
+      (is (re-find #"National Council on Public Procurement" (:owner-authority sb))
+          "PPA 2007 establishes both bodies -- BPP alone is an incomplete citation"))))
+
+;; -------- fact-audit regression: NOCOPO is disclosure, not registration --------
+
+(deftest nocopo-is-a-disclosure-portal-not-a-registration-system
+  (testing "NOCOPO must be characterized as a public disclosure/transparency portal, never a supplier-registration/bidding system"
+    (let [sb (facts/spec-basis "NGA")]
+      (is (re-find #"(?i)NOCOPO" (:national-spec sb)))
+      (is (re-find #"(?i)disclosure|transparency" (:national-spec sb))
+          "must describe NOCOPO's actual disclosure/transparency role")
+      (is (not (re-find #"(?i)NOCOPO registration" (:national-spec sb)))
+          "must NOT re-introduce the old 'NOCOPO registration' mischaracterization")
+      (is (not (some #(re-find #"(?i)NOCOPO registration" %) (:required-evidence sb)))
+          "required-evidence must not demand a 'NOCOPO registration record' -- NOCOPO is not a registration system"))))
+
+;; -------- fact-audit regression: CAC / CAMA 2020 business registration --------
+
+(deftest cac-cama-2020-business-registration
+  (let [brb (facts/business-registration-spec-basis "NGA")]
+    (is (some? brb) "a business-registration sub-map must exist for NGA")
+    (is (re-find #"Corporate Affairs Commission|CAC" (:business-registration-owner-authority brb)))
+    (is (re-find #"CAMA 2020|Companies and Allied Matters Act" (:business-registration-legal-basis brb)))))
+
+;; -------- fact-audit regression: THE headline fix -- FIRS -> NRS --------
+
+(deftest tax-authority-is-nrs-not-firs
+  (testing "the corporate tax authority citation must be the CURRENT Nigeria Revenue Service (NRS), never the superseded FIRS"
+    (let [sb (facts/spec-basis "NGA")
+          cnb (facts/corporate-number-spec-basis "NGA")]
+      (is (re-find #"(?i)Nigeria Revenue Service|NRS" (:corporate-number-owner-authority sb))
+          "corporate-number-owner-authority must cite NRS")
+      (is (re-find #"(?i)Nigeria Revenue Service|NRS" (:corporate-number-owner-authority cnb)))
+      (is (not= "CAC / FIRS" (:corporate-number-owner-authority sb))
+          "must not still be the stale 'CAC / FIRS' string")
+      (is (not (some #(re-find #"(?i)^FIRS TIN record$" %) (:required-evidence sb)))
+          "required-evidence must not cite a bare 'FIRS TIN record' as the current authority")
+      (is (some #(re-find #"(?i)NRS" %) (:required-evidence sb))
+          "required-evidence must cite NRS for the TIN record"))))
+
+(deftest tin-auto-issued-via-cac-nrs-integration
+  (testing "boundary check: TIN is now auto-issued via CAC<->NRS integration, not a separate application"
+    (let [sb (facts/spec-basis "NGA")]
+      (is (true? (:tin-auto-issued-via-cac? sb)))
+      (is (re-find #"(?i)automatically" (:corporate-number-legal-basis sb)))
+      (is (re-find #"(?i)CAC.{0,5}NRS|NRS.{0,5}CAC" (:corporate-number-legal-basis sb))
+          "must describe the CAC<->NRS integration, not a standalone application process"))))
+
+;; -------- fact-audit addition: NIPC Act foreign-investor registration --------
+
+(deftest nipc-foreign-investor-registration-is-present
+  (testing "NIPC Act Cap. N117 LFN 2004 foreign-investor registration, absent from the prior catalog, is now grounded"
+    (let [fib (facts/foreign-investor-spec-basis "NGA")]
+      (is (some? fib) "must be newly present -- the prior catalog had no such entry at all")
+      (is (re-find #"Nigerian Investment Promotion Commission|NIPC" (:foreign-investor-owner-authority fib)))
+      (is (re-find #"N117" (:foreign-investor-legal-basis fib)))
+      (is (re-find #"Section 20" (:foreign-investor-legal-basis fib))))))
+
+(deftest unknown-jurisdiction-has-no-foreign-investor-spec-basis
+  (is (nil? (facts/foreign-investor-spec-basis "ATL")))
+  (is (nil? (facts/foreign-investor-spec-basis "ZZZ"))))
