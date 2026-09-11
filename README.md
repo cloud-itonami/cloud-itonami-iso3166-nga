@@ -3,7 +3,7 @@
 **`:implemented`** for **NGA**. Flagship `ng-entity-missing`, tax `cac-unverified`.
 
 ```
-clojure -M:dev:test
+kbb -M:dev:test
 ```
 
 AGPL-3.0-or-later.
